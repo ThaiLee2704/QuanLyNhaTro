@@ -2,10 +2,13 @@
 // Kết nối cơ sở dữ liệu
 include 'db.php';
 
-// Truy vấn dữ liệu từ bảng nha_tro
-$sql = "SELECT id_nha_tro AS id, ten_nha_tro AS name, dia_chi_nha_tro AS address, 
-               tong_so_phong AS total_rooms, phong_con_trong AS empty_rooms 
-        FROM nha_tro";
+// Truy vấn dữ liệu từ bảng nha_tro và đếm số phòng, số phòng trống
+$sql = "SELECT nt.id_nha_tro AS id, nt.ten_nha_tro AS name, nt.dia_chi_nha_tro AS address,
+        IFNULL(COUNT(pt.id_phong_tro), 0) AS total_rooms,
+        IFNULL(SUM(CASE WHEN pt.trang_thai = 'Trống' THEN 1 ELSE 0 END), 0) AS empty_rooms
+        FROM nha_tro nt
+        LEFT JOIN phong_tro pt ON nt.id_nha_tro = pt.id_nha_tro
+        GROUP BY nt.id_nha_tro";
 $result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
@@ -16,25 +19,23 @@ $result = $conn->query($sql);
     <title>Quản lý Nhà trọ</title>
     <link rel="stylesheet" href="styles.css" />
     <style>
-      .container {
-        padding: 20px;
+      .container { padding: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      th { background-color: #f2f2f2; }
+      button { margin: 5px; padding: 5px 10px; }
+      #modal-overlay {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 999;
       }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
+      #addHouseModal, #editHouseModal {
+        display: none; position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff; padding: 20px; border-radius: 8px; z-index: 1000;
+        width: 350px; max-width: 95vw;
       }
-      th, td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-      }
-      th {
-        background-color: #f2f2f2;
-      }
-      button {
-        margin: 5px;
-        padding: 5px 10px;
+      #addHouseModal input, #editHouseModal input {
+        width: 100%; margin-bottom: 10px; padding: 5px;
       }
     </style>
   </head>
@@ -54,8 +55,7 @@ $result = $conn->query($sql);
     <!-- Main Content -->
     <div class="container">
       <h1>Quản lý Nhà trọ</h1>
-      <button onclick="addNewBoardingHouse()">Thêm Nhà trọ mới</button>
-      
+      <button onclick="openAddHouseModal()">Thêm Nhà trọ mới</button>
       <table>
         <thead>
           <tr>
@@ -70,15 +70,15 @@ $result = $conn->query($sql);
         <tbody>
           <?php if ($result->num_rows > 0): ?>
             <?php while ($row = $result->fetch_assoc()): ?>
-              <tr>
+              <tr data-house='<?php echo json_encode($row); ?>'>
                 <td><?php echo htmlspecialchars($row['id']); ?></td>
                 <td><?php echo htmlspecialchars($row['name']); ?></td>
                 <td><?php echo htmlspecialchars($row['address']); ?></td>
-                <td><?php echo htmlspecialchars($row['total_rooms']); ?></td>
-                <td><?php echo htmlspecialchars($row['empty_rooms']); ?></td>
+                <td><?php echo (int)$row['total_rooms']; ?></td>
+                <td><?php echo (int)$row['empty_rooms']; ?></td>
                 <td>
                   <button onclick="viewBoardingHouse('<?php echo $row['id']; ?>')">Xem</button>
-                  <button onclick="editBoardingHouse('<?php echo $row['id']; ?>')">Sửa</button>
+                  <button onclick="openEditHouseModal(this)">Sửa</button>
                   <button onclick="deleteBoardingHouse('<?php echo $row['id']; ?>')">Xóa</button>
                 </td>
               </tr>
@@ -92,26 +92,124 @@ $result = $conn->query($sql);
       </table>
     </div>
 
+    <!-- Modal thêm nhà trọ -->
+    <div id="modal-overlay"></div>
+    <div id="addHouseModal">
+      <h2>Thêm nhà trọ mới</h2>
+      <form id="addHouseForm">
+        <label>Tên nhà trọ:</label>
+        <input type="text" name="ten_nha_tro" required>
+        <label>Địa chỉ nhà trọ:</label>
+        <input type="text" name="dia_chi_nha_tro" required>
+        <button type="submit">Thêm</button>
+        <button type="button" onclick="closeAddHouseModal()">Hủy</button>
+      </form>
+    </div>
+
+    <!-- Modal sửa nhà trọ -->
+    <div id="editHouseModal">
+      <h2>Sửa nhà trọ</h2>
+      <form id="editHouseForm">
+        <input type="hidden" name="id_nha_tro" id="edit_id_nha_tro">
+        <label>Tên nhà trọ:</label>
+        <input type="text" name="ten_nha_tro" id="edit_ten_nha_tro" required>
+        <label>Địa chỉ nhà trọ:</label>
+        <input type="text" name="dia_chi_nha_tro" id="edit_dia_chi_nha_tro" required>
+        <button type="submit">Lưu</button>
+        <button type="button" onclick="closeEditHouseModal()">Hủy</button>
+      </form>
+    </div>
+
     <script>
-      function addNewBoardingHouse() {
-        alert("Chức năng thêm nhà trọ mới sẽ được triển khai ở đây.");
+      function openAddHouseModal() {
+        document.getElementById('addHouseModal').style.display = 'block';
+        document.getElementById('modal-overlay').style.display = 'block';
+      }
+      function closeAddHouseModal() {
+        document.getElementById('addHouseModal').style.display = 'none';
+        document.getElementById('modal-overlay').style.display = 'none';
+      }
+      function openEditHouseModal(btn) {
+        const row = btn.closest('tr');
+        const data = JSON.parse(row.getAttribute('data-house'));
+        document.getElementById('edit_id_nha_tro').value = data.id;
+        document.getElementById('edit_ten_nha_tro').value = data.name;
+        document.getElementById('edit_dia_chi_nha_tro').value = data.address;
+        document.getElementById('editHouseModal').style.display = 'block';
+        document.getElementById('modal-overlay').style.display = 'block';
+      }
+      function closeEditHouseModal() {
+        document.getElementById('editHouseModal').style.display = 'none';
+        document.getElementById('modal-overlay').style.display = 'none';
+      }
+      document.getElementById('modal-overlay').onclick = function() {
+        closeAddHouseModal();
+        closeEditHouseModal();
+      };
+
+      // Thêm nhà trọ
+      document.getElementById('addHouseForm').onsubmit = function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        fetch('add_house.php', {
+          method: 'POST',
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert('Thêm nhà trọ thành công!');
+            location.reload();
+          } else {
+            alert('Lỗi: ' + data.message);
+          }
+        })
+        .catch(() => alert('Đã xảy ra lỗi khi thêm nhà trọ!'));
+      };
+
+      // Sửa nhà trọ
+      document.getElementById('editHouseForm').onsubmit = function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        fetch('edit_house.php', {
+          method: 'POST',
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert('Cập nhật nhà trọ thành công!');
+            location.reload();
+          } else {
+            alert('Lỗi: ' + data.message);
+          }
+        })
+        .catch(() => alert('Đã xảy ra lỗi khi sửa nhà trọ!'));
+      };
+
+      // Xóa nhà trọ
+      function deleteBoardingHouse(id) {
+        if (confirm(`Bạn có chắc chắn muốn xóa nhà trọ có ID: ${id}?`)) {
+          fetch('delete_house.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'id_nha_tro=' + encodeURIComponent(id)
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              alert('Đã xóa nhà trọ!');
+              location.reload();
+            } else {
+              alert('Lỗi: ' + data.message);
+            }
+          })
+          .catch(() => alert('Đã xảy ra lỗi khi xóa nhà trọ!'));
+        }
       }
 
       function viewBoardingHouse(id) {
-        //alert(`Xem chi tiết nhà trọ có ID: ${id}`);
-        // Chuyển hướng đến trang quản lý phòng trọ với ID nhà trọ tương ứng
         window.location.href = `./quanlyphongtro.php?id=${id}`;
-      }
-
-      function editBoardingHouse(id) {
-        alert(`Sửa thông tin nhà trọ có ID: ${id}`);
-      }
-
-      function deleteBoardingHouse(id) {
-        if (confirm(`Bạn có chắc chắn muốn xóa nhà trọ có ID: ${id}?`)) {
-          alert(`Đã xóa nhà trọ có ID: ${id}`);
-          // Gửi yêu cầu xóa đến server (cần triển khai thêm API xóa)
-        }
       }
     </script>
   </body>

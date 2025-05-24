@@ -4,10 +4,7 @@ include 'db.php';
 
 // Lấy ID nhà trọ từ URL
 $id_nha_tro = $_GET['id'] ?? null;
-
-if (!$id_nha_tro) {
-    die("Không tìm thấy ID nhà trọ.");
-}
+if (!$id_nha_tro) die("Không tìm thấy ID nhà trọ.");
 
 // Truy vấn dữ liệu từ bảng phong_tro
 $sql = "SELECT id_phong_tro AS room_id, dien_tich AS area, gia_thue AS price, 
@@ -28,25 +25,24 @@ $result = $stmt->get_result();
     <title>Quản lý Phòng trọ</title>
     <link rel="stylesheet" href="styles.css" />
     <style>
-      .container {
-        padding: 20px;
+      .container { padding: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      th { background-color: #f2f2f2; }
+      button { margin: 5px; padding: 5px 10px; }
+      #modal-overlay {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 999;
       }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
+      #addRoomModal, #editRoomModal {
+        display: none; position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff; padding: 20px; border-radius: 8px; z-index: 1000;
+        width: 350px; max-width: 95vw;
       }
-      th, td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-      }
-      th {
-        background-color: #f2f2f2;
-      }
-      button {
-        margin: 5px;
-        padding: 5px 10px;
+      #addRoomModal input, #addRoomModal select, #addRoomModal textarea,
+      #editRoomModal input, #editRoomModal select, #editRoomModal textarea {
+        width: 100%; margin-bottom: 10px; padding: 5px;
       }
     </style>
   </head>
@@ -66,8 +62,7 @@ $result = $stmt->get_result();
     <!-- Main Content -->
     <div class="container">
       <h1>Quản lý Phòng trọ</h1>
-      <button class="add-button" onclick="addNewRoom()">Thêm Phòng trọ mới</button>
-
+      <button class="add-button" onclick="openAddRoomModal()">Thêm Phòng trọ mới</button>
       <table>
         <thead>
           <tr>
@@ -84,7 +79,7 @@ $result = $stmt->get_result();
         <tbody>
           <?php if ($result->num_rows > 0): ?>
             <?php while ($row = $result->fetch_assoc()): ?>
-              <tr>
+              <tr data-room='<?php echo json_encode($row); ?>'>
                 <td><?php echo htmlspecialchars($row['room_id']); ?></td>
                 <td><?php echo htmlspecialchars($row['area']); ?></td>
                 <td><?php echo number_format($row['price'], 0, ',', '.'); ?> VND</td>
@@ -93,7 +88,7 @@ $result = $stmt->get_result();
                 <td><?php echo nl2br(htmlspecialchars($row['facilities'])); ?></td>
                 <td><?php echo $row['contract_end_date'] ? htmlspecialchars($row['contract_end_date']) : 'N/A'; ?></td>
                 <td>
-                  <button class="edit-button" onclick="editRoom('<?php echo $row['room_id']; ?>')">Sửa</button>
+                  <button class="edit-button" onclick="openEditRoomModal(this)">Sửa</button>
                   <button class="delete-button" onclick="deleteRoom('<?php echo $row['room_id']; ?>')">Xóa</button>
                 </td>
               </tr>
@@ -107,19 +102,146 @@ $result = $stmt->get_result();
       </table>
     </div>
 
+    <!-- Modal thêm phòng trọ -->
+    <div id="modal-overlay"></div>
+    <div id="addRoomModal">
+      <h2>Thêm phòng trọ mới</h2>
+      <form id="addRoomForm">
+        <input type="hidden" name="id_nha_tro" value="<?php echo htmlspecialchars($id_nha_tro); ?>">
+        <label>Diện tích (m2):</label>
+        <input type="number" name="area" min="1" step="0.1" required>
+        <label>Giá thuê:</label>
+        <input type="number" name="price" min="0" required>
+        <label>Số người tối đa:</label>
+        <input type="number" name="max_people" min="1" required>
+        <label>Trạng thái:</label>
+        <select name="status" required>
+          <option value="Trống">Trống</option>
+          <option value="Đã thuê">Đã thuê</option>
+        </select>
+        <label>Cơ sở vật chất:</label>
+        <textarea name="facilities" rows="2"></textarea>
+        <label>Ngày hết hạn hợp đồng:</label>
+        <input type="date" name="contract_end_date">
+        <button type="submit">Thêm</button>
+        <button type="button" onclick="closeAddRoomModal()">Hủy</button>
+      </form>
+    </div>
+
+    <!-- Modal sửa phòng trọ -->
+    <div id="editRoomModal">
+      <h2>Sửa phòng trọ</h2>
+      <form id="editRoomForm">
+        <input type="hidden" name="room_id" id="edit_room_id">
+        <label>Diện tích (m2):</label>
+        <input type="number" name="area" id="edit_area" min="1" step="0.1" required>
+        <label>Giá thuê:</label>
+        <input type="number" name="price" id="edit_price" min="0" required>
+        <label>Số người tối đa:</label>
+        <input type="number" name="max_people" id="edit_max_people" min="1" required>
+        <label>Trạng thái:</label>
+        <select name="status" id="edit_status" required>
+          <option value="Trống">Trống</option>
+          <option value="Đã thuê">Đã thuê</option>
+        </select>
+        <label>Cơ sở vật chất:</label>
+        <textarea name="facilities" id="edit_facilities" rows="2"></textarea>
+        <label>Ngày hết hạn hợp đồng:</label>
+        <input type="date" name="contract_end_date" id="edit_contract_end_date">
+        <button type="submit">Lưu</button>
+        <button type="button" onclick="closeEditRoomModal()">Hủy</button>
+      </form>
+    </div>
+
     <script>
-      function addNewRoom() {
-        alert("Chức năng thêm phòng trọ mới sẽ được triển khai ở đây.");
+      function openAddRoomModal() {
+        document.getElementById('addRoomModal').style.display = 'block';
+        document.getElementById('modal-overlay').style.display = 'block';
       }
-
-      function editRoom(id) {
-        alert(`Sửa thông tin phòng trọ có ID: ${id}`);
+      function closeAddRoomModal() {
+        document.getElementById('addRoomModal').style.display = 'none';
+        document.getElementById('modal-overlay').style.display = 'none';
       }
+      function openEditRoomModal(btn) {
+        const row = btn.closest('tr');
+        const data = JSON.parse(row.getAttribute('data-room'));
+        document.getElementById('edit_room_id').value = data.room_id;
+        document.getElementById('edit_area').value = data.area;
+        document.getElementById('edit_price').value = data.price;
+        document.getElementById('edit_max_people').value = data.max_people;
+        document.getElementById('edit_status').value = data.status;
+        document.getElementById('edit_facilities').value = data.facilities;
+        document.getElementById('edit_contract_end_date').value = data.contract_end_date || '';
+        document.getElementById('editRoomModal').style.display = 'block';
+        document.getElementById('modal-overlay').style.display = 'block';
+      }
+      function closeEditRoomModal() {
+        document.getElementById('editRoomModal').style.display = 'none';
+        document.getElementById('modal-overlay').style.display = 'none';
+      }
+      document.getElementById('modal-overlay').onclick = function() {
+        closeAddRoomModal();
+        closeEditRoomModal();
+      };
 
-      function deleteRoom(id) {
-        if (confirm(`Bạn có chắc chắn muốn xóa phòng trọ có ID: ${id}?`)) {
-          alert(`Đã xóa phòng trọ có ID: ${id}`);
-          // Gửi yêu cầu xóa đến server (cần triển khai thêm API xóa)
+      // Thêm phòng trọ
+      document.getElementById('addRoomForm').onsubmit = function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        fetch('add_room.php', {
+          method: 'POST',
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert('Thêm phòng trọ thành công!');
+            location.reload();
+          } else {
+            alert('Lỗi: ' + data.message);
+          }
+        })
+        .catch(() => alert('Đã xảy ra lỗi khi thêm phòng trọ!'));
+      };
+
+      // Sửa phòng trọ
+      document.getElementById('editRoomForm').onsubmit = function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        fetch('edit_room.php', {
+          method: 'POST',
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert('Cập nhật phòng trọ thành công!');
+            location.reload();
+          } else {
+            alert('Lỗi: ' + data.message);
+          }
+        })
+        .catch(() => alert('Đã xảy ra lỗi khi sửa phòng trọ!'));
+      };
+
+      // Xóa phòng trọ
+      function deleteRoom(roomId) {
+        if (confirm(`Bạn có chắc chắn muốn xóa phòng trọ có ID: ${roomId}?`)) {
+          fetch('delete_room.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'room_id=' + encodeURIComponent(roomId)
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              alert('Đã xóa phòng trọ!');
+              location.reload();
+            } else {
+              alert('Lỗi: ' + data.message);
+            }
+          })
+          .catch(() => alert('Đã xảy ra lỗi khi xóa phòng trọ!'));
         }
       }
     </script>

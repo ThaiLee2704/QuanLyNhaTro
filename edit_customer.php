@@ -2,6 +2,7 @@
 include 'db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $id = intval($_POST['id']);
   $name = $_POST['name'];
   $gender = $_POST['gender'];
   $dob = $_POST['dob'] ?? null;
@@ -12,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $house = !empty($_POST['house']) ? intval($_POST['house']) : null;
   $room = !empty($_POST['room']) ? intval($_POST['room']) : null;
 
-  // Xử lý ảnh upload
+  // Xử lý ảnh mới (nếu có)
   $photo = null;
   if (isset($_FILES['photo']) && $_FILES['photo']['error'] == 0) {
     $targetDir = "uploads/";
@@ -28,27 +29,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-  // Kiểm tra dữ liệu đầu vào
-  if (empty($name) || empty($gender) || empty($phone) || empty($cccd)) {
-    echo json_encode(['success' => false, 'message' => 'Vui lòng điền đầy đủ thông tin bắt buộc.']);
-    exit;
+  if ($photo) {
+    $stmt = $conn->prepare("UPDATE khach_hang SET ho_ten=?, gioi_tinh=?, ngay_sinh=?, sdt=?, email=?, cccd=?, dia_chi_thuong_tru=?, id_nha_tro=?, id_phong_tro=?, anh=? WHERE id_khach=?");
+    $stmt->bind_param(
+      'ssssssssssi',
+      $name,
+      $gender,
+      $dob,
+      $phone,
+      $email,
+      $cccd,
+      $address,
+      $house,
+      $room,
+      $photo,
+      $id
+    );
+  } else {
+    $stmt = $conn->prepare("UPDATE khach_hang SET ho_ten=?, gioi_tinh=?, ngay_sinh=?, sdt=?, email=?, cccd=?, dia_chi_thuong_tru=?, id_nha_tro=?, id_phong_tro=? WHERE id_khach=?");
+    $stmt->bind_param(
+      'sssssssssi',
+      $name,
+      $gender,
+      $dob,
+      $phone,
+      $email,
+      $cccd,
+      $address,
+      $house,
+      $room,
+      $id
+    );
   }
-
-  // Thêm khách hàng vào cơ sở dữ liệu
-  $stmt = $conn->prepare("INSERT INTO khach_hang (ho_ten, gioi_tinh, ngay_sinh, sdt, email, cccd, dia_chi_thuong_tru, id_nha_tro, id_phong_tro, anh) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-  $stmt->bind_param(
-    'ssssssssss',
-    $name,
-    $gender,
-    $dob,
-    $phone,
-    $email,
-    $cccd,
-    $address,
-    $house,
-    $room,
-    $photo
-  );
 
   if ($stmt->execute()) {
     echo json_encode(['success' => true]);
