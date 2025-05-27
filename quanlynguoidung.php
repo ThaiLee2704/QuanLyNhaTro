@@ -205,8 +205,9 @@ $result = $conn->query($sql);
       </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="Roboto-normal.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script>
 // Hiện modal thêm khách hàng
 function addNewCustomer() {
@@ -335,13 +336,14 @@ function deleteCustomer(id) {
   }
 }
 
-// Xuất PDF danh sách khách hàng (bỏ cột chức năng)
+// Xuất PDF danh sách khách hàng (bỏ cột chức năng, font Unicode, căn bảng đẹp)
 function exportPDF() {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  doc.setFont("Times", "normal");
-  doc.setFontSize(14);
-  doc.text("Báo cáo danh sách khách hàng", 14, 14);
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+  doc.setFont("DejaVuSans", "normal"); // Font Unicode hỗ trợ tiếng Việt
+  doc.setFontSize(13);
+  doc.text("Báo cáo danh sách khách hàng", 14, 16);
 
   // Lấy dữ liệu bảng, bỏ cột cuối
   const table = document.getElementById("customerTable");
@@ -365,14 +367,11 @@ function exportPDF() {
     head: head,
     body: body,
     startY: 22,
-    styles: { font: "times", fontSize: 11, cellPadding: 2, overflow: 'linebreak' },
+    margin: { left: 8, right: 8 },
+    styles: { font: "DejaVuSans", fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     bodyStyles: { textColor: 20 },
-    columnStyles: {
-      0: {cellWidth: 18}, 1: {cellWidth: 15}, 2: {cellWidth: 32}, 3: {cellWidth: 18},
-      4: {cellWidth: 22}, 5: {cellWidth: 25}, 6: {cellWidth: 35}, 7: {cellWidth: 28},
-      8: {cellWidth: 35}, 9: {cellWidth: 25}, 10: {cellWidth: 20}
-    }
+    tableWidth: 'auto'
   });
   doc.save("bao_cao_khach_hang.pdf");
 }
