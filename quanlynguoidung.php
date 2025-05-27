@@ -32,7 +32,7 @@ $result = $conn->query($sql);
         z-index: 1000; border-radius: 8px; padding: 20px;
       }
       #addCustomerModal .modal-content, #editCustomerModal .modal-content {
-        max-height: 80vh; overflow-y: auto;
+        max-height: 80vh; overflow-y: auto; width: 100%; margin: auto auto;
       }
       #addCustomerModal button, #editCustomerModal button { margin-top: 10px; }
       #modal-overlay {
@@ -150,6 +150,8 @@ $result = $conn->query($sql);
           <select id="room" name="room" required>
             <option value="">Chọn phòng</option>
           </select><br><br>
+          <label for="contract_end_date">Ngày hết hạn hợp đồng:</label>
+          <input type="date" id="contract_end_date" name="contract_end_date" required><br><br>
           <label for="photo">Ảnh khách hàng:</label>
           <input type="file" id="photo" name="photo" accept="image/*"><br><br>
           <button type="submit">Thêm</button>
