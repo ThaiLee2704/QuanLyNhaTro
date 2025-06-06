@@ -67,6 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
+    // Cập nhật lại số phòng cho nhà trọ
+    $id_nha_tro = (int)$house;
+    $conn->query("UPDATE nha_tro 
+      SET tong_so_phong = (SELECT COUNT(*) FROM phong_tro WHERE id_nha_tro = $id_nha_tro),
+          phong_con_trong = (SELECT COUNT(*) FROM phong_tro WHERE id_nha_tro = $id_nha_tro AND trang_thai = 'Trống')
+      WHERE id_nha_tro = $id_nha_tro");
+
     // Commit nếu mọi thứ OK
     $conn->commit();
     echo json_encode(['success' => true]);

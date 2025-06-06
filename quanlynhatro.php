@@ -3,16 +3,19 @@
 include 'db.php';
 
 // Truy vấn dữ liệu từ bảng nha_tro và đếm số phòng, số phòng trống
-$sql = "SELECT nt.id_nha_tro AS id, nt.ten_nha_tro AS name, nt.dia_chi_nha_tro AS address,
-        IFNULL(COUNT(pt.id_phong_tro), 0) AS total_rooms,
-        IFNULL(SUM(CASE WHEN pt.trang_thai = 'Trống' THEN 1 ELSE 0 END), 0) AS empty_rooms
+$sql = "SELECT 
+            nt.id_nha_tro AS id, 
+            nt.ten_nha_tro AS name, 
+            nt.dia_chi_nha_tro AS address,
+            COUNT(pt.id_phong_tro) AS total_rooms,
+            SUM(CASE WHEN pt.trang_thai = 'Trống' THEN 1 ELSE 0 END) AS empty_rooms
         FROM nha_tro nt
         LEFT JOIN phong_tro pt ON nt.id_nha_tro = pt.id_nha_tro
-        GROUP BY nt.id_nha_tro";
+        GROUP BY nt.id_nha_tro, nt.ten_nha_tro, nt.dia_chi_nha_tro";
 $result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -68,7 +71,7 @@ $result = $conn->query($sql);
           </tr>
         </thead>
         <tbody>
-          <?php if ($result->num_rows > 0): ?>
+          <?php if ($result && $result->num_rows > 0): ?>
             <?php while ($row = $result->fetch_assoc()): ?>
               <tr data-house='<?php echo json_encode($row); ?>'>
                 <td><?php echo htmlspecialchars($row['id']); ?></td>

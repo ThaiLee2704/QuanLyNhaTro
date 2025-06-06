@@ -13,6 +13,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $house = !empty($_POST['house']) ? intval($_POST['house']) : null;
   $room = !empty($_POST['room']) ? intval($_POST['room']) : null;
 
+  // Lấy phòng cũ và ngày hết hạn cũ của khách hàng
+  $stmt = $conn->prepare("SELECT id_phong_tro, id_nha_tro FROM khach_hang WHERE id_khach=?");
+  $stmt->bind_param("i", $id);
+  $stmt->execute();
+  $stmt->bind_result($old_room, $old_house);
+  $stmt->fetch();
+  $stmt->close();
+
+  $contract_end_date = null;
+  if ($old_room) {
+    // Lấy ngày hết hạn hợp đồng của phòng cũ
+    $stmt = $conn->prepare("SELECT ngay_het_han_hop_dong FROM phong_tro WHERE id_phong_tro=?");
+    $stmt->bind_param("i", $old_room);
+    $stmt->execute();
+    $stmt->bind_result($contract_end_date);
+    $stmt->fetch();
+    $stmt->close();
+  }
+
+  // Nếu đổi phòng
+  if ($old_room && $room && $old_room != $room) {
+    // Cập nhật phòng cũ thành Trống, ngày hết hạn NULL
+    $stmt = $conn->prepare("UPDATE phong_tro SET trang_thai='Trống', ngay_het_han_hop_dong=NULL WHERE id_phong_tro=?");
+    $stmt->bind_param("i", $old_room);
+    $stmt->execute();
+    $stmt->close();
+
+    // Cập nhật phòng mới thành Đã thuê, ngày hết hạn là ngày cũ
+    $stmt = $conn->prepare("UPDATE phong_tro SET trang_thai='Đã thuê', ngay_het_han_hop_dong=? WHERE id_phong_tro=?");
+    $stmt->bind_param("si", $contract_end_date, $room);
+    $stmt->execute();
+    $stmt->close();
+  }
+
   // Xử lý ảnh mới (nếu có)
   $photo = null;
   if (isset($_FILES['photo']) && $_FILES['photo']['error'] == 0) {

@@ -232,7 +232,10 @@ function loadRooms(houseId, roomSelectId, selectedRoom = '') {
   const roomSelect = document.getElementById(roomSelectId);
   roomSelect.innerHTML = '<option value="">Chọn phòng</option>';
   if (houseId) {
-    fetch(`get_rooms.php?id_nha_tro=${houseId}`)
+    // Truyền selectedRoom vào AJAX để lấy cả phòng đang ở
+    let url = `get_rooms.php?id_nha_tro=${houseId}`;
+    if (selectedRoom) url += `&id_phong_hien_tai=${selectedRoom}`;
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         data.forEach(room => {
@@ -285,6 +288,7 @@ function openEditCustomerModal(btn) {
   document.getElementById('edit_cccd').value = data.cccd;
   document.getElementById('edit_address').value = data.address;
   document.getElementById('edit_house').value = data.house_id || '';
+  // Truyền room_id vào loadRooms để phòng khách đang ở luôn xuất hiện và được chọn
   loadRooms(data.house_id, 'edit_room', data.room_id || '');
   // Hiện ảnh hiện tại nếu có
   const img = document.getElementById('current_photo');
