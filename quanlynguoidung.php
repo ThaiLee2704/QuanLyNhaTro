@@ -208,7 +208,7 @@ $result = $conn->query($sql);
     </div>
 
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="Roboto-normal.js"></script>
+<script src="fonts/Roboto-normal.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script>
 // Hiện modal thêm khách hàng
@@ -343,7 +343,10 @@ function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-  doc.setFont("DejaVuSans", "normal"); // Font Unicode hỗ trợ tiếng Việt
+  // Nhúng font Roboto từ file Roboto-normal.js
+  doc.addFileToVFS("Roboto-Regular.ttf", RobotoRegular);
+  doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+  doc.setFont("Roboto", "normal");
   doc.setFontSize(13);
   doc.text("Báo cáo danh sách khách hàng", 14, 16);
 
@@ -370,7 +373,7 @@ function exportPDF() {
     body: body,
     startY: 22,
     margin: { left: 8, right: 8 },
-    styles: { font: "DejaVuSans", fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+    styles: { font: "Roboto", fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     bodyStyles: { textColor: 20 },
     tableWidth: 'auto'
