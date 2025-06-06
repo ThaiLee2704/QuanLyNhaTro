@@ -235,7 +235,7 @@
               <button class="status-toggle ${transaction.status}" data-id="${transaction.id}">${transaction.status === 'paid' ? 'Đã thu' : 'Chưa thu'}</button>
             </td>
             <td>
-              <a href="chitietgiaodich.html?id=${transaction.id}">Xem Chi tiết</a> 
+              <a href="chitietgiaodich.php?id=${transaction.id}">Xem Chi tiết</a> 
               <button class="delete-btn" data-id="${transaction.id}">Xóa</button>
             </td>
           `;
