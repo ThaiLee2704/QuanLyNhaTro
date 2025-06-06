@@ -2,6 +2,22 @@
 // Kết nối cơ sở dữ liệu
 include 'db.php';
 
+// Số dòng mỗi trang
+$limit = 5;
+
+// Trang hiện tại (mặc định là 1)
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+
+// Tính offset
+$offset = ($page - 1) * $limit;
+
+// Đếm tổng số nhà trọ
+$total_sql = "SELECT COUNT(*) AS total FROM nha_tro";
+$total_result = $conn->query($total_sql);
+$total_row = $total_result->fetch_assoc();
+$total_houses = $total_row['total'];
+$total_pages = ceil($total_houses / $limit);
+
 // Truy vấn dữ liệu từ bảng nha_tro và đếm số phòng, số phòng trống
 $sql = "SELECT 
             nt.id_nha_tro AS id, 
@@ -11,7 +27,8 @@ $sql = "SELECT
             SUM(CASE WHEN pt.trang_thai = 'Trống' THEN 1 ELSE 0 END) AS empty_rooms
         FROM nha_tro nt
         LEFT JOIN phong_tro pt ON nt.id_nha_tro = pt.id_nha_tro
-        GROUP BY nt.id_nha_tro, nt.ten_nha_tro, nt.dia_chi_nha_tro";
+        GROUP BY nt.id_nha_tro, nt.ten_nha_tro, nt.dia_chi_nha_tro
+        LIMIT $limit OFFSET $offset";
 $result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
@@ -39,6 +56,19 @@ $result = $conn->query($sql);
       }
       #addHouseModal input, #editHouseModal input {
         width: 100%; margin-bottom: 10px; padding: 5px;
+      }
+      .pagination a {
+        padding: 4px 10px;
+        background: #eee;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #333;
+      }
+      .pagination strong {
+        color: #fff;
+        background: #2980b9;
+        padding: 4px 10px;
+        border-radius: 4px;
       }
     </style>
   </head>
@@ -93,6 +123,19 @@ $result = $conn->query($sql);
           <?php endif; ?>
         </tbody>
       </table>
+
+      <!-- Phân trang -->
+      <div class="pagination" style="margin-top:20px;text-align:center;">
+        <?php if ($total_pages > 1): ?>
+          <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+            <?php if ($i == $page): ?>
+              <strong style="margin:0 5px;"><?php echo $i; ?></strong>
+            <?php else: ?>
+              <a href="?page=<?php echo $i; ?>" style="margin:0 5px;"><?php echo $i; ?></a>
+            <?php endif; ?>
+          <?php endfor; ?>
+        <?php endif; ?>
+      </div>
     </div>
 
     <!-- Modal thêm nhà trọ -->

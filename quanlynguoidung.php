@@ -2,13 +2,30 @@
 // Kết nối cơ sở dữ liệu
 include 'db.php';
 
-// Truy vấn dữ liệu từ bảng khach_hang
+// Số dòng mỗi trang
+$limit = 10;
+
+// Trang hiện tại (mặc định là 1)
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+
+// Tính offset
+$offset = ($page - 1) * $limit;
+
+// Đếm tổng số khách hàng
+$total_sql = "SELECT COUNT(*) AS total FROM khach_hang";
+$total_result = $conn->query($total_sql);
+$total_row = $total_result->fetch_assoc();
+$total_customers = $total_row['total'];
+$total_pages = ceil($total_customers / $limit);
+
+// Truy vấn dữ liệu khách hàng cho trang hiện tại
 $sql = "SELECT kh.id_khach AS id, kh.ho_ten AS name, kh.gioi_tinh AS gender, kh.ngay_sinh AS dob, 
                kh.sdt AS phone, kh.email, kh.cccd, kh.dia_chi_thuong_tru AS address, 
                nt.id_nha_tro AS house_id, nt.ten_nha_tro AS house, pt.id_phong_tro AS room_id, pt.id_phong_tro AS room, kh.anh AS photo
         FROM khach_hang kh
         LEFT JOIN nha_tro nt ON kh.id_nha_tro = nt.id_nha_tro
-        LEFT JOIN phong_tro pt ON kh.id_phong_tro = pt.id_phong_tro";
+        LEFT JOIN phong_tro pt ON kh.id_phong_tro = pt.id_phong_tro
+        LIMIT $limit OFFSET $offset";
 $result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
@@ -39,6 +56,19 @@ $result = $conn->query($sql);
         display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background-color: rgba(0, 0, 0, 0.5); z-index: 999;
       }
+      .pagination a {
+  padding: 4px 10px;
+  background: #eee;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #333;
+}
+.pagination strong {
+  color: #fff;
+  background: #2980b9;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
     </style>
   </head>
   <body>
@@ -110,6 +140,19 @@ $result = $conn->query($sql);
           <?php endif; ?>
         </tbody>
       </table>
+
+      <!-- Phân trang -->
+<div class="pagination" style="margin-top:20px;text-align:center;">
+  <?php if ($total_pages > 1): ?>
+    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+      <?php if ($i == $page): ?>
+        <strong style="margin:0 5px;"><?php echo $i; ?></strong>
+      <?php else: ?>
+        <a href="?page=<?php echo $i; ?>" style="margin:0 5px;"><?php echo $i; ?></a>
+      <?php endif; ?>
+    <?php endfor; ?>
+  <?php endif; ?>
+</div>
     </div>
 
     <!-- Modal thêm khách hàng -->

@@ -6,14 +6,34 @@ include 'db.php';
 $id_nha_tro = $_GET['id'] ?? null;
 if (!$id_nha_tro) die("Không tìm thấy ID nhà trọ.");
 
+// Số dòng mỗi trang
+$limit = 5;
+
+// Trang hiện tại (mặc định là 1)
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+
+// Tính offset
+$offset = ($page - 1) * $limit;
+
+// Đếm tổng số phòng trọ của nhà trọ này
+$count_sql = "SELECT COUNT(*) AS total FROM phong_tro WHERE id_nha_tro = ?";
+$count_stmt = $conn->prepare($count_sql);
+$count_stmt->bind_param("i", $id_nha_tro);
+$count_stmt->execute();
+$count_stmt->bind_result($total_rooms);
+$count_stmt->fetch();
+$count_stmt->close();
+$total_pages = ceil($total_rooms / $limit);
+
 // Truy vấn dữ liệu từ bảng phong_tro
 $sql = "SELECT id_phong_tro AS room_id, dien_tich AS area, gia_thue AS price, 
                so_nguoi_toi_da AS max_people, trang_thai AS status, 
                co_so_vat_chat AS facilities, ngay_het_han_hop_dong AS contract_end_date
         FROM phong_tro
-        WHERE id_nha_tro = ?";
+        WHERE id_nha_tro = ?
+        LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $id_nha_tro);
+$stmt->bind_param("iii", $id_nha_tro, $limit, $offset);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -43,6 +63,19 @@ $result = $stmt->get_result();
       #addRoomModal input, #addRoomModal select, #addRoomModal textarea,
       #editRoomModal input, #editRoomModal select, #editRoomModal textarea {
         width: 100%; margin-bottom: 10px; padding: 5px;
+      }
+      .pagination a {
+        padding: 4px 10px;
+        background: #eee;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #333;
+      }
+      .pagination strong {
+        color: #fff;
+        background: #2980b9;
+        padding: 4px 10px;
+        border-radius: 4px;
       }
     </style>
   </head>
@@ -100,6 +133,19 @@ $result = $stmt->get_result();
           <?php endif; ?>
         </tbody>
       </table>
+
+      <!-- Phân trang -->
+      <div class="pagination" style="margin-top:20px;text-align:center;">
+        <?php if ($total_pages > 1): ?>
+          <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+            <?php if ($i == $page): ?>
+              <strong style="margin:0 5px;"><?php echo $i; ?></strong>
+            <?php else: ?>
+              <a href="?id=<?php echo $id_nha_tro; ?>&page=<?php echo $i; ?>" style="margin:0 5px;"><?php echo $i; ?></a>
+            <?php endif; ?>
+          <?php endfor; ?>
+        <?php endif; ?>
+      </div>
     </div>
 
     <!-- Modal thêm phòng trọ -->
