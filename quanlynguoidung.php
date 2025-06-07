@@ -170,15 +170,15 @@ $result = $conn->query($sql);
             <option value="Khác">Khác</option>
           </select><br><br>
           <label for="dob">Ngày sinh:</label>
-          <input type="date" id="dob" name="dob"><br><br>
+          <input type="date" id="dob" name="dob" required><br><br>
           <label for="phone">Số điện thoại:</label>
           <input type="text" id="phone" name="phone" required><br><br>
           <label for="email">Email:</label>
-          <input type="email" id="email" name="email"><br><br>
+          <input type="email" id="email" name="email" required><br><br>
           <label for="cccd">CCCD:</label>
           <input type="text" id="cccd" name="cccd" required><br><br>
           <label for="address">Địa chỉ thường trú:</label>
-          <input type="text" id="address" name="address"><br><br>
+          <input type="text" id="address" name="address" required><br><br>
           <label for="house">Nhà thuê:</label>
           <select id="house" name="house" required>
             <option value="">Chọn nhà</option>
@@ -218,15 +218,15 @@ $result = $conn->query($sql);
             <option value="Khác">Khác</option>
           </select><br><br>
           <label for="edit_dob">Ngày sinh:</label>
-          <input type="date" id="edit_dob" name="dob"><br><br>
+          <input type="date" id="edit_dob" name="dob" required><br><br>
           <label for="edit_phone">Số điện thoại:</label>
           <input type="text" id="edit_phone" name="phone" required><br><br>
           <label for="edit_email">Email:</label>
-          <input type="email" id="edit_email" name="email"><br><br>
+          <input type="email" id="edit_email" name="email" required><br><br>
           <label for="edit_cccd">CCCD:</label>
           <input type="text" id="edit_cccd" name="cccd" required><br><br>
           <label for="edit_address">Địa chỉ thường trú:</label>
-          <input type="text" id="edit_address" name="address"><br><br>
+          <input type="text" id="edit_address" name="address" required><br><br>
           <label for="edit_house">Nhà thuê:</label>
           <select id="edit_house" name="house" required>
             <option value="">Chọn nhà</option>

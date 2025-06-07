@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Kiểm tra dữ liệu đầu vào
-    if (empty($name) || empty($gender) || empty($phone) || empty($cccd) || empty($contract_end_date)) {
+    if (empty($name) || empty($gender) || empty($dob) || empty($phone) || empty($cccd) || empty($contract_end_date)) {
       throw new Exception('Vui lòng điền đầy đủ thông tin bắt buộc.');
     }
 
